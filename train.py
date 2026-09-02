@@ -373,6 +373,7 @@ with torch.no_grad():
     cos_200 = []
     cos_mz = []
     num = 0
+    total_samples = 0
     for batch in test_loader:
         num += 1
         batch.x = batch.x.to(device)
@@ -384,21 +385,26 @@ with torch.no_grad():
         target = batch.y.view(batch_size, -1)
 
         mz_range = (74, 400)
-        bins = 326000 # 326000
+        bins = 326000
         bin_size = (mz_range[1] - mz_range[0]) / bins
         mz_values = np.linspace(mz_range[0], mz_range[1], bins)
 
-        for i in range(min(5, batch_size)):
+        for i in range(min(batch_size)):
+            total_samples += 1
             # Predicted and Actual Spectra
             predicted_spectrum = out[i].cpu().numpy()
             target_spectrum = target[i].cpu().numpy()
 
             # Normalization
-            predicted_spectrum /= np.max(np.abs(predicted_spectrum))
-            target_spectrum /= np.max(np.abs(target_spectrum))
+             max_pred = np.max(np.abs(predicted_spectrum))
+            max_target = np.max(np.abs(target_spectrum))
+            if max_pred > 0:
+                predicted_spectrum /= max_pred
+            if max_target > 0:
+                target_spectrum /= max_target
 
             # Filter the 200 m/z values with the highest response intensity from the predicted values
-            top_indices = np.argsort(predicted_spectrum)[-200:]  # 强度从小到大排序，取最后 200 个
+            top_indices = np.argsort(predicted_spectrum)[-200:]  
             filtered_mz_values = mz_values[top_indices]
             filtered_predicted_intensities = predicted_spectrum[top_indices]
 
@@ -412,6 +418,7 @@ with torch.no_grad():
 
     # print('cos_200:', np.mean(cos_200), 'cos_mz:', np.mean(cos_mz))
             # Drawing
+        if total_samples <= 5: 
             plt.figure(figsize=(10, 6))
             plt.stem(filtered_mz_values, filtered_predicted_intensities, linefmt='b-', markerfmt='bo', label="Predicted Spectrum", basefmt=" ")
             plt.stem(filtered_target_mz_values, -filtered_target_intensities, linefmt='orange', markerfmt='ro', label="Target Spectrum (Inverted)", basefmt=" ")
@@ -422,14 +429,18 @@ with torch.no_grad():
             plt.title(f'Sample {i + 1} - Predicted vs Target Spectrum (Top 200 Peaks)')
             plt.legend()
             plt.ylim([-1, 1])
-            plt.show()
-            plt.savefig(f'./figs/fig{num}{i+1}.png', format='png')
-    print('cos_200:', np.mean(cos_200), 'cos_mz:', np.mean(cos_mz))
-    x2 = f"cos_200: {np.mean(cos_200)}, cos_mz: {np.mean(cos_mz)}"
+            plt.savefig(f'./figs/fig_sample_{total_samples}.png', format='png')
+            plt.close()
+     print(f': {total_samples}')
+    print(f'cos_200: {np.mean(cos_200):.6f}')
+    print(f'cos_mz: {np.mean(cos_mz):.6f}')
+    x2 = f"cos_200: {np.mean(cos_200):.6f}, cos_mz: {np.mean(cos_mz):.6f}"
+
+  
     if os.path.exists("output.txt"):
         # The file exists; write in append mode.
         with open("output.txt", "a", encoding="utf-8") as file:
-            file.write(x2)
+            file.write("\n" + x2)
         print("The file exists; write in append mode.")
     else:
         # The file does not exist; create the file and write to it
