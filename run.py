@@ -1,10 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Tue Mar 11 14:43:15 2025
-
-@author: Huawei
-"""
-
 from torch_geometric.nn import GATConv, global_mean_pool
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
