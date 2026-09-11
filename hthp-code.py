@@ -295,7 +295,7 @@ for epoch in range(1, num_epochs+1):
             'scheduler_state_dict': scheduler.state_dict(),
             'train_losses': train_losses,
             'val_losses': val_losses,
-            'mean_cosine_similarity': cos_sim,  # 保存完整序列
+            'mean_cosine_similarity': cos_sim,  
         }, f"mpnn_with_base256_{epoch}+.pth")
 
 
@@ -389,7 +389,7 @@ with torch.no_grad():
         bin_size = (mz_range[1] - mz_range[0]) / bins
         mz_values = np.linspace(mz_range[0], mz_range[1], bins)
 
-        for i in range(min(batch_size)):
+        for i in range(min(5，batch_size)):
             total_samples += 1
             # Predicted and Actual Spectra
             predicted_spectrum = out[i].cpu().numpy()
@@ -491,11 +491,11 @@ model = MPNNWithAttention(in_feats=12, h_feats=256, out_feats=326000, num_layers
 # model = GNN(num_layer=6, input_dim=12, emb_dim=1024, output_dim=326000, JK = "last", drop_ratio = 0, gnn_type = "gin", disable_fingerprint = False).to(device)
 optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3, weight_decay=1e-4)
 scheduler = ReduceLROnPlateau(optimizer,
-                              mode='min',  # 'min' 表示目标是最小化验证损失
-                              factor=0.1,  # 学习率每次降低的比例，例如从 0.001 -> 0.0001
-                              patience=10, # 容忍验证损失在 10 个 epoch 内不下降
-                              verbose=True, # 输出学习率调整信息
-                              min_lr=1e-6) # 最低学习率限制
+                              mode='min',  # 'min' indicates that the objective is to minimize the validation loss
+                              factor=0.1,  # The percentage by which the learning rate is reduced each time, for example, from 0.001 to 0.0001
+                              patience=10, # Tolerate a validation loss that does not decrease within 10 epochs
+                              verbose=True, # Output information on learning rate adjustments
+                              min_lr=1e-6) # Minimum Learning Rate Limit
 
 # Initialize Variables
 train_losses = []
@@ -541,7 +541,7 @@ else:
 print(model)
 print(optimizer)
 print(scheduler)
-print(f"当前调度器状态: {scheduler.state_dict()}")
+print(f"Current Scheduler Status: {scheduler.state_dict()}")
 
 
 # Example of Training and Saving Logic
@@ -549,7 +549,7 @@ def train_model(num_epochs):
     global epoch, train_losses, val_losses, cosine_similarities
 
     for epoch in range(epoch, num_epochs):
-        # 示例训练和保存逻辑
+        # Example: Training and Saving Logic
         train_loss = np.random.random()  # Simulation Training Loss
         val_loss = np.random.random()  # Simulation Verification Loss
         cosine_similarity = np.random.random()  # Simulated Cosine Similarity
@@ -569,7 +569,7 @@ def train_model(num_epochs):
             'scheduler_state_dict': scheduler.state_dict(),
             'train_losses': train_losses,
             'val_losses': val_losses,
-            'mean_cosine_similarity': cosine_similarities,  # 保存完整序列
+            'mean_cosine_similarity': cosine_similarities,  # Preserve the complete sequence
         }, "mpnn_with_base256_{num}+.pth")
 
         print(
@@ -699,7 +699,7 @@ with torch.no_grad():
             graph_data.x,
             graph_data.edge_index,
             graph_data.edge_attr,
-            torch.zeros(graph_data.x.shape[0], dtype=torch.long, device=device)  # 假设 batch=0
+            torch.zeros(graph_data.x.shape[0], dtype=torch.long, device=device)  # Assumption batch=0
         )
         # Check the Output Shape
         print(f"Output shape: {out.shape}")
