@@ -148,14 +148,12 @@ def ms2_to_vector(ms2_data, mz_range=(74, 400), bins=326000, intensity_transform
 
 # Improved MPNN Model
 class MPNNWithAttention(nn.Module):
-    def __init__(self, in_feats, h_feats=64, out_feats=326000, num_layers=4):
+    def __init__(self, in_feats, h_feats=64, out_feats=326000, num_layers=3):
         super(MPNNWithAttention, self).__init__()
         self.num_layers = num_layers
         self.node_embedding = nn.Linear(in_feats, h_feats)
         self.mpnn_layers = nn.ModuleList(
-            [GATConv(h_feats, h_feats, heads=4, concat=False),
-             GATConv(h_feats, h_feats, heads=4, concat=False),
-             GATConv(h_feats, h_feats, heads=4, concat=False)]
+            [GATConv(h_feats, h_feats, heads=4, concat=False) for _ in range(num_layers)]
         )
         self.fc = nn.Linear(h_feats, out_feats)
         self.dropout = nn.Dropout(0.2)
@@ -210,9 +208,9 @@ val_mols = mols[train_size:train_size + val_size]
 test_mols = mols[train_size + val_size:]
 print(train_size, val_size, test_size)
 
-train_loader = DataLoader(train_mols, batch_size=16, shuffle=True, num_workers=4, pin_memory=True)
-val_loader = DataLoader(val_mols, batch_size=32, num_workers=4, pin_memory=True)
-test_loader = DataLoader(test_mols, batch_size=32, num_workers=4, pin_memory=True)
+train_loader = DataLoader(train_mols, batch_size=16, shuffle=True, num_workers=0, pin_memory=False)
+val_loader = DataLoader(val_mols, batch_size=32, num_workers=0, pin_memory=False)
+test_loader = DataLoader(test_mols, batch_size=32, num_workers=0, pin_memory=False)
 print(len(train_loader), len(val_loader), len(test_loader))
 
 # Model Initialization
@@ -339,8 +337,8 @@ plt.plot(val_losses, label="Validation Loss")
 plt.legend()
 plt.xlabel("Epochs")
 plt.ylabel("Loss")
-plt.show()
 plt.savefig('./figs/loss.png', format='png')
+plt.show()
 
 # Test the model's performance and calculate the cosine similarity
 model.eval()
@@ -487,14 +485,12 @@ num = 150
 
 # Define the Model
 class MPNNWithAttention(nn.Module):
-    def __init__(self, in_feats, h_feats=64, out_feats=326000, num_layers=4):
+    def __init__(self, in_feats, h_feats=64, out_feats=326000, num_layers=3):
         super(MPNNWithAttention, self).__init__()
         self.num_layers = num_layers
         self.node_embedding = nn.Linear(in_feats, h_feats)
         self.mpnn_layers = nn.ModuleList(
-            [GATConv(h_feats, h_feats, heads=4, concat=False),
-             GATConv(h_feats, h_feats, heads=4, concat=False),
-             GATConv(h_feats, h_feats, heads=4, concat=False)]
+            [GATConv(h_feats, h_feats, heads=4, concat=False) for _ in range(num_layers)]
         )
         self.fc = nn.Linear(h_feats, out_feats)
         self.dropout = nn.Dropout(0.2)
