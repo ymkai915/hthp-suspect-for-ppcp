@@ -317,7 +317,7 @@ for epoch in range(1, num_epochs + 1):
             'train_losses': train_losses,
             'val_losses': val_losses,
             'mean_cosine_similarity': cos_sim,
-        }, f"mpnn_with_base256_{epoch}+.pth")
+        }, f"mpnn_with_base256.pth")
 
     # Call the scheduler to adjust the learning rate based on the validation loss
     scheduler.step(val_loss)
@@ -549,7 +549,7 @@ try:
         raise ValueError("cosine_similarities should be a list or an array.")
 
     print(
-        f"The model has been loaded from ‘mpnn_with_base256_{num}+.pth’ and training has resumed from epoch {epoch + 1}.")
+        f"The model has been loaded from ‘mpnn_with_base256.pth’ and training has resumed from epoch {epoch + 1}.")
 except FileNotFoundError:
     print("No checkpoint file found; initializing a new training state")
 except KeyError as e:
@@ -599,7 +599,7 @@ def train_model(num_epochs):
             'train_losses': train_losses,
             'val_losses': val_losses,
             'mean_cosine_similarity': cosine_similarities,  # Preserve the complete sequence
-        }, "mpnn_with_base256_{num}+.pth")
+        }, "mpnn_with_base256.pth")
 
         print(
             f"Epoch {epoch + 1}/{num_epochs} - Train Loss: {train_loss:.4f}, Val Loss: {val_loss:.4f}, Cosine Similarity: {cosine_similarity:.4f}")
