@@ -18,6 +18,9 @@ import urllib.request
 # from gnn_sp import GNN, temperature
 import os
 
+output_dir = r"C:\Users\Desktop\Spectra_Result"
+os.makedirs(output_dir, exist_ok=True)
+
 SEED = 42
 random.seed(SEED)
 np.random.seed(SEED)
@@ -169,7 +172,7 @@ class MPNNWithAttention(nn.Module):
 
 
 # Data Loading and Partitioning
-data = load_mgf_with_ms2('./MASSBANK.mgf')
+data = load_mgf_with_ms2('E:/YMK/20251126可疑标准品确证/MASSBANK.mgf')
 
 # Batch Processing
 batch_size = 200
@@ -249,14 +252,13 @@ scheduler = ReduceLROnPlateau(optimizer,
                               factor=0.1,
                               # The percentage by which the learning rate is reduced each time, for example, from 0.001 to 0.0001
                               patience=10,  # Tolerate a validation loss that does not decrease within 10 epochs
-                              verbose=True,  # Output information on learning rate adjustments
                               min_lr=1e-6)  # Minimum Learning Rate Limit
 
 scaler = GradScaler()
 
 # Start the training and validation loops
-num_epochs = 150
-train_losses, val_losses = [], []
+num_epochs = 20
+train_losses, val_losses, val_cos_similarities = [], [], []
 
 for epoch in range(1, num_epochs + 1):
     # Training Loop
@@ -305,6 +307,21 @@ for epoch in range(1, num_epochs + 1):
         cos_sim = cos_sum / len(val_loader)
         mse_sum = mse_sum / len(val_loader)
 
+        # 新增：计算与测试集逻辑一致的映射余弦相似度
+        mapped_cos_sum = 0.0
+        for batch in val_loader:
+            batch.x = batch.x.to(device)
+            batch.edge_index = batch.edge_index.to(device)
+            batch.edge_attr = batch.edge_attr.to(device)
+            batch.y = batch.y.to(device)
+            batch_size = batch.num_graphs
+            out = model(batch.x, batch.edge_index, batch.edge_attr, batch.batch.to(device))
+            target = batch.y.view(batch_size, -1)
+            mapped_cos = torch.sigmoid(cosine_similarity(out, target, dim=1) * 5)
+            mapped_cos_sum += mapped_cos.mean().item()
+
+        # 把映射后的值存入列表
+        val_cos_similarities.append(mapped_cos_sum / len(val_loader))
     if (epoch > 1) and (epoch % 10 == 0):
         # Save Checkpoint
         torch.save({
@@ -315,7 +332,7 @@ for epoch in range(1, num_epochs + 1):
             'train_losses': train_losses,
             'val_losses': val_losses,
             'mean_cosine_similarity': cos_sim,
-        }, f"mpnn_with_base256.pth")
+        }, os.path.join(output_dir, "mpnn_with_base256.pth"))
 
     # Call the scheduler to adjust the learning rate based on the validation loss
     scheduler.step(val_loss)
@@ -337,8 +354,16 @@ plt.plot(val_losses, label="Validation Loss")
 plt.legend()
 plt.xlabel("Epochs")
 plt.ylabel("Loss")
-plt.savefig('./figs/loss.png', format='png')
-plt.show()
+plt.savefig(os.path.join(output_dir, 'loss.png'), format='png')
+# 绘制余弦相似度曲线
+plt.figure(figsize=(8, 5))
+plt.plot(val_cos_similarities, label="Validation Cosine Similarity", color='green')
+plt.legend()
+plt.xlabel("Epochs")
+plt.ylabel("Cosine Similarity")
+plt.title("Cosine Similarity over Epochs")
+plt.savefig(os.path.join(output_dir, 'cosine_similarity.png'), format='png')
+plt.close()
 
 # Test the model's performance and calculate the cosine similarity
 model.eval()
@@ -366,15 +391,14 @@ print(f"Mean Cosine Similarity on Test Set: {mean_cosine_similarity:.4f} - mse: 
 x1 = f"Mean Cosine Similarity on Test Set: {mean_cosine_similarity:.4f} - mse: {test_mse}"
 
 # Check if the file exists
-if os.path.exists("output.txt"):
-    # The file exists; write in append mode
-    with open("output.txt", "a", encoding="utf-8") as file:
-        file.write(x1)
+output_txt_path = os.path.join(output_dir, "output.txt")
+if os.path.exists(output_txt_path):
+    with open(output_txt_path, "a", encoding="utf-8") as file:
+        file.write(x1 + "\n")
     print("The file exists; write in append mode")
 else:
-    # The file does not exist; create the file and write to it
-    with open("output.txt", "w", encoding="utf-8") as file:
-        file.write(x1)
+    with open(output_txt_path, "w", encoding="utf-8") as file:
+        file.write(x1 + "\n")
     print("The file does not exist; create the file and write to it")
 
 
@@ -452,21 +476,20 @@ with torch.no_grad():
             plt.title(f'Sample {i + 1} - Predicted vs Target Spectrum (Top 200 Peaks)')
             plt.legend()
             plt.ylim([-1, 1])
-            plt.savefig(f'./figs/fig_sample_{total_samples}.png', format='png')
+            plt.savefig(os.path.join(output_dir, f'fig_sample_{total_samples}.png'), format='png')
             plt.close()
     print(f': {total_samples}')
     print(f'cos_200: {np.mean(cos_200):.6f}')
     print(f'cos_mz: {np.mean(cos_mz):.6f}')
     x2 = f"cos_200: {np.mean(cos_200):.6f}, cos_mz: {np.mean(cos_mz):.6f}"
 
-    if os.path.exists("output.txt"):
-        # The file exists; write in append mode.
-        with open("output.txt", "a", encoding="utf-8") as file:
+    output_txt_path = os.path.join(output_dir, "output.txt")
+    if os.path.exists(output_txt_path):
+        with open(output_txt_path, "a", encoding="utf-8") as file:
             file.write("\n" + x2)
         print("The file exists; write in append mode.")
     else:
-        # The file does not exist; create the file and write to it
-        with open("output.txt", "w", encoding="utf-8") as file:
+        with open(output_txt_path, "w", encoding="utf-8") as file:
             file.write(x2)
         print("The file does not exist; create the file and write to it")
 
@@ -478,9 +501,12 @@ import numpy as np
 import torch.nn as nn
 # from gnn_sp import GNN
 from torch.optim.lr_scheduler import ReduceLROnPlateau
+import os
+
+output_dir = r"C:\Users\Desktop\Spectra_Result"
+os.makedirs(output_dir, exist_ok=True)
 
 print('0000')
-num = 150
 
 
 # Define the Model
@@ -518,7 +544,6 @@ scheduler = ReduceLROnPlateau(optimizer,
                               factor=0.1,
                               # The percentage by which the learning rate is reduced each time, for example, from 0.001 to 0.0001
                               patience=10,  # Tolerate a validation loss that does not decrease within 10 epochs
-                              verbose=True,  # Output information on learning rate adjustments
                               min_lr=1e-6)  # Minimum Learning Rate Limit
 
 # Initialize Variables
@@ -528,8 +553,9 @@ cosine_similarities = []
 epoch = 0
 
 # Loading the model's state
+checkpoint_path = os.path.join(output_dir, "mpnn_with_base256.pth")
 try:
-    checkpoint = torch.load(f"./mpnn_with_base256.pth", map_location=device)
+    checkpoint = torch.load(checkpoint_path, map_location=device)
     model.load_state_dict(checkpoint['model_state_dict'])
     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
     scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
@@ -544,12 +570,13 @@ try:
     elif not isinstance(cosine_similarities, list):
         raise ValueError("cosine_similarities should be a list or an array.")
 
-    print(
-        f"The model has been loaded from ‘mpnn_with_base256.pth’ and training has resumed from epoch {epoch + 1}.")
+    print(f"The model has been loaded from '{checkpoint_path}' and training has resumed from epoch {epoch + 1}.")
 except FileNotFoundError:
-    print("No checkpoint file found; initializing a new training state")
+    print(f"No checkpoint file found at {checkpoint_path}; initializing a new training state")
+    exit(1)
 except KeyError as e:
     print(f"An error occurred while loading the checkpoint: Key {e} is missing.")
+    exit(1)
 
 # Visualization of the change in cosine similarity over training iterations
 if len(cosine_similarities) > 1:
@@ -595,7 +622,7 @@ def train_model(num_epochs):
             'train_losses': train_losses,
             'val_losses': val_losses,
             'mean_cosine_similarity': cosine_similarities,  # Preserve the complete sequence
-        }, "mpnn_with_base256.pth")
+        }, os.path.join(output_dir, "mpnn_with_base256.pth"))
 
         print(
             f"Epoch {epoch + 1}/{num_epochs} - Train Loss: {train_loss:.4f}, Val Loss: {val_loss:.4f}, Cosine Similarity: {cosine_similarity:.4f}")
@@ -681,7 +708,7 @@ def mol_to_graph(mol):
 
 # Define the CSV file path
 input_csv_path = 'E:/predict.csv'
-output_csv_path = 'E:/results_base256.csv'
+output_csv_path = os.path.join(output_dir, "results_base256.csv")
 
 # Read a CSV File
 df = pd.read_csv(input_csv_path)
