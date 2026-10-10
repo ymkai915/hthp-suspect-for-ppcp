@@ -172,7 +172,7 @@ class MPNNWithAttention(nn.Module):
 
 
 # Data Loading and Partitioning
-data = load_mgf_with_ms2('E:/YMK/MASSBANK.mgf')
+data = load_mgf_with_ms2('E:/MASSBANK.mgf')
 
 # Batch Processing
 batch_size = 200
