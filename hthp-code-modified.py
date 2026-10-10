@@ -18,8 +18,8 @@ import urllib.request
 # from gnn_sp import GNN, temperature
 import os
 
-output_dir = r"C:\Users\ES&T509\Desktop\Spectra_Result"
-os.makedirs(output_dir, exist_ok=True)  # 如果桌面上没有这个文件夹，自动创建
+output_dir = r"C:\Users\Desktop\Spectra_Result"
+os.makedirs(output_dir, exist_ok=True) 
 
 SEED = 42
 random.seed(SEED)
@@ -172,7 +172,7 @@ class MPNNWithAttention(nn.Module):
 
 
 # Data Loading and Partitioning
-data = load_mgf_with_ms2('E:/YMK/20251126可疑标准品确证/MASSBANK.mgf')
+data = load_mgf_with_ms2('E:/YMK/MASSBANK.mgf')
 
 # Batch Processing
 batch_size = 200
@@ -304,11 +304,10 @@ for epoch in range(1, num_epochs + 1):
 
         val_loss /= len(val_loader)
         val_losses.append(val_loss.item())
-        # 原有逻辑保留
         cos_sim = cos_sum / len(val_loader)
         mse_sum = mse_sum / len(val_loader)
 
-        # 新增：计算与测试集逻辑一致的映射余弦相似度
+        # Compute the cosine similarity of mappings that are logically consistent with the test set
         mapped_cos_sum = 0.0
         for batch in val_loader:
             batch.x = batch.x.to(device)
@@ -321,7 +320,6 @@ for epoch in range(1, num_epochs + 1):
             mapped_cos = torch.sigmoid(cosine_similarity(out, target, dim=1) * 5)
             mapped_cos_sum += mapped_cos.mean().item()
 
-        # 把映射后的值存入列表
         val_cos_similarities.append(mapped_cos_sum / len(val_loader))
     if (epoch > 1) and (epoch % 10 == 0):
         # Save Checkpoint
@@ -356,7 +354,7 @@ plt.legend()
 plt.xlabel("Epochs")
 plt.ylabel("Loss")
 plt.savefig(os.path.join(output_dir, 'loss.png'), format='png')
-# 绘制余弦相似度曲线
+# Plotting the Cosine Similarity Curve
 plt.figure(figsize=(8, 5))
 plt.plot(val_cos_similarities, label="Validation Cosine Similarity", color='green')
 plt.legend()
