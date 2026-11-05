@@ -389,14 +389,14 @@ with torch.no_grad():
         bin_size = (mz_range[1] - mz_range[0]) / bins
         mz_values = np.linspace(mz_range[0], mz_range[1], bins)
 
-        for i in range(min(5，batch_size)):
+        for i in range(min(5, batch_size)):
             total_samples += 1
             # Predicted and Actual Spectra
             predicted_spectrum = out[i].cpu().numpy()
             target_spectrum = target[i].cpu().numpy()
 
             # Normalization
-             max_pred = np.max(np.abs(predicted_spectrum))
+            max_pred = np.max(np.abs(predicted_spectrum))
             max_target = np.max(np.abs(target_spectrum))
             if max_pred > 0:
                 predicted_spectrum /= max_pred
@@ -431,7 +431,7 @@ with torch.no_grad():
             plt.ylim([-1, 1])
             plt.savefig(f'./figs/fig_sample_{total_samples}.png', format='png')
             plt.close()
-     print(f': {total_samples}')
+    print(f': {total_samples}')
     print(f'cos_200: {np.mean(cos_200):.6f}')
     print(f'cos_mz: {np.mean(cos_mz):.6f}')
     x2 = f"cos_200: {np.mean(cos_200):.6f}, cos_mz: {np.mean(cos_mz):.6f}"
@@ -518,7 +518,7 @@ try:
     if isinstance(cosine_similarities, (float, np.float32)):  # If it is a scalar
         cosine_similarities = [cosine_similarities]  # Switch to List View
     elif not isinstance(cosine_similarities, list):
-        raise ValueError(`cosine_similarities` should be a list or an array.")
+        raise ValueError("cosine_similarities should be a list or an array.")
 
     print(f"The model has been loaded from ‘mpnn_with_base256_{num}+.pth’ and training has resumed from epoch {epoch + 1}.")
 except FileNotFoundError:
